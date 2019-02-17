@@ -4,6 +4,10 @@ from sys import exit, argv
 from yaml import load
 from subprocess import check_call, CalledProcessError
 
+class CommandNameNotDefined(Exception):
+    def __init__(self, command_name):
+        self.message = 'The command name "' + command_name + '" is undefined'
+
 class Printer:
     INFO = '\033[92m'
     WARNING = '\033[93m'
@@ -32,17 +36,21 @@ class Printer:
 
 class Dispatcher:
     def __init__(self, command_file_path):
-        content = load(open(command_file_path))
+        content = load(open(command_file_path))['config']
         self.commands = content['commands']
+        self.events = content['events']
 
-    def run(self, command_event):
-        if None == self.commands:
+    def run(self, event_name):
+        if None == self.events:
             return
-        if command_event not in self.commands:
+        if event_name not in self.events:
             return
 
-        commands = self.commands[command_event]
-        for command in commands:
+        command_names = self.events[event_name]
+        for command_name in command_names:
+            if command_name not in self.commands:
+                raise CommandNameNotDefined(command_name)
+            command = self.commands[command_name]
             Printer.print_info(Printer.build_command_message(command))
             check_call(command)
 
@@ -53,6 +61,9 @@ if __name__ == '__main__':
         framework.run(argv[1])
     except FileNotFoundError as e:
         Printer.print_error(e.args[1])
+        exit(1)
+    except CommandNameNotDefined as e:
+        Printer.print_error(e.message)
         exit(1)
     except CalledProcessError as e:
         Printer.print_error('Returned ' + str(e.returncode))
