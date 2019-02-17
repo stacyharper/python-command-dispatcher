@@ -3,6 +3,7 @@
 from sys import exit, argv
 from yaml import load
 from subprocess import check_call, CalledProcessError
+from os.path import expandvars
 
 class CommandNameNotDefined(Exception):
     def __init__(self, command_name):
@@ -34,11 +35,20 @@ class Printer:
             message += ' \'' + argument + '\''
         return message
 
+
+
 class Dispatcher:
     def __init__(self, command_file_path):
         content = load(open(command_file_path))['config']
-        self.commands = content['commands']
+        self.commands = self.expand_command(content['commands'])
         self.events = content['events']
+
+    @staticmethod
+    def expand_command(commands):
+        for command_name, command in commands.items():
+            commands[command_name] = list(map(expandvars, command))
+
+        return commands
 
     def run(self, event_name):
         if None == self.events:
