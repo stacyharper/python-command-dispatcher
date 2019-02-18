@@ -1,4 +1,4 @@
-#!/bin/python
+#!/bin/python3
 
 from sys import exit, argv
 from yaml import load
